@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Rubik", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Rubik", ui-serif, system-ui, serif;
+
+  --color-calm-beige: #FAF9F6;
+  --color-calm-ink: #4A4A4A;
+  --color-calm-sage: #9BB0A5;
+  --color-calm-sage-light: #EAF2ED;
+  --color-calm-sage-dark: #7A9085;
+  --color-calm-sand: #FDF5E6;
+  --color-calm-sand-dark: #B59D7C;
+  --color-calm-rose: #EAD7D1;
+  --color-calm-rose-dark: #8A6D74;
+  --color-calm-dark: #5A5A40;
+  --color-calm-border: #F0EFEA;
+}
+
+@layer base {
+  body {
+    @apply bg-calm-beige text-calm-ink font-sans antialiased;
+    direction: rtl;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-serif;
+  }
+}
+
+.card-shadow {
+  box-shadow: 0 10px 25px -5px rgba(155, 176, 165, 0.1), 0 8px 10px -6px rgba(155, 176, 165, 0.1);
+}
+
+.glass {
+  @apply bg-white/40 backdrop-blur-md border border-white/20;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+.animate-breathe {
+  animation: breathe 5s ease-in-out infinite;
+}

@@ -1,0 +1,6 @@
+{
+  "name": "רגע לעצמי",
+  "description": "אפליקציה תומכת לאימהות חד הוריות המעודדת הרגלים קטנים לחיים רגועים יותר.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
