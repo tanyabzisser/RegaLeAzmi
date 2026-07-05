@@ -15,9 +15,15 @@
       // Clean up any registered service workers and delete caches to prevent any future caching traps or media playback issues.
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
+          let hasUnregistered = false;
           for (let registration of registrations) {
             registration.unregister();
             console.log('Successfully unregistered active service worker.');
+            hasUnregistered = true;
+          }
+          if (hasUnregistered) {
+            console.log('Reloading to fully apply service worker removal.');
+            window.location.reload();
           }
         });
       }

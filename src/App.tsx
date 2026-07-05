@@ -621,10 +621,18 @@ function SOSMode({ onClose }: { onClose: () => void }) {
         audioRef.current.load(); // Force browser to re-load the new resource
         audioRef.current.volume = 0.5;
         
-        audioRef.current.play().catch(error => {
-          console.warn("Audio play() blocked/failed, starting warm synthesizer fallback...", error instanceof Error ? error.message : String(error));
-          startFallbackSynth();
-        });
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            // Only trigger fallback if the current audio src matches the one we attempted to play
+            if (audioRef.current && audioRef.current.src === finalUrl) {
+              console.warn("Audio play() blocked/failed for current track, starting warm synthesizer fallback...", error instanceof Error ? error.message : String(error));
+              startFallbackSynth();
+            } else {
+              console.log("Ignored play() rejection for previous aborted/changed track:", finalUrl);
+            }
+          });
+        }
       } catch (err) {
         console.error("Failed to setup audio playback:", err);
         startFallbackSynth();
@@ -634,7 +642,7 @@ function SOSMode({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const generateMeditation = async () => {
+  const generateMeditation = () => {
     setPhase('loading');
     
     // Pick a random track that is different from the last track played
@@ -652,6 +660,11 @@ function SOSMode({ onClose }: { onClose: () => void }) {
     // PLAY AUDIO SYNCHRONOUSLY HERE (inside the click event's call stack)
     playAudioTrack(randomTrack.url);
 
+    // Execute background async text generation
+    fetchMeditationText();
+  };
+
+  const fetchMeditationText = async () => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
 
@@ -724,9 +737,13 @@ function SOSMode({ onClose }: { onClose: () => void }) {
         // Resumes audio only if they were actively meditating when they tabbed out
         if (phase === 'meditating' && isMusicPlaying) {
           if (audioRef.current && audioRef.current.src && audioRef.current.src !== window.location.href) {
+            const currentSrc = audioRef.current.src;
             audioRef.current.play().catch(err => {
-              console.warn("Failed to resume audio on focus:", err instanceof Error ? err.message : String(err));
-              startFallbackSynth();
+              // Only trigger fallback if the source didn't change in the meantime
+              if (audioRef.current && audioRef.current.src === currentSrc) {
+                console.warn("Failed to resume audio on focus:", err instanceof Error ? err.message : String(err));
+                startFallbackSynth();
+              }
             });
           } else {
             startFallbackSynth();
@@ -783,9 +800,13 @@ function SOSMode({ onClose }: { onClose: () => void }) {
     setIsMusicPlaying(true);
 
     if (audioRef.current && audioRef.current.src && audioRef.current.src !== window.location.href) {
+      const currentSrc = audioRef.current.src;
       audioRef.current.play().catch(error => {
-        console.warn("Audio play() failed during resume, starting synth fallback:", error instanceof Error ? error.message : String(error));
-        startFallbackSynth();
+        // Only trigger fallback if the source didn't change in the meantime
+        if (audioRef.current && audioRef.current.src === currentSrc) {
+          console.warn("Audio play() failed during resume, starting synth fallback:", error instanceof Error ? error.message : String(error));
+          startFallbackSynth();
+        }
       });
     } else {
       startFallbackSynth();
@@ -810,7 +831,13 @@ function SOSMode({ onClose }: { onClose: () => void }) {
           // Only fall back to synthesizer if we actually set a source and it wasn't a blank or empty state load
           const audioEl = e.currentTarget;
           if (audioEl && audioEl.src && audioEl.src !== window.location.href && audioEl.src !== "") {
-            console.warn("Audio element failed to load or play, falling back to browser-native synthesizer:", e.type);
+            const mediaError = audioEl.error;
+            // Ignore error code 1 (MEDIA_ERR_ABORTED) which occurs when changing audio sources
+            if (mediaError && mediaError.code === 1) {
+              console.log("Audio load aborted (expected when changing tracks), ignoring error.");
+              return;
+            }
+            console.warn("Audio element failed to load or play, falling back to browser-native synthesizer:", e.type, mediaError ? `Code: ${mediaError.code}` : "No error details");
             startFallbackSynth();
           }
         }}
@@ -1497,9 +1524,15 @@ export default function App() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
+        let hasUnregistered = false;
         for (let registration of registrations) {
           registration.unregister();
           console.log('Unregistered service worker dynamically in App mount.');
+          hasUnregistered = true;
+        }
+        if (hasUnregistered) {
+          console.log('Reloading App to complete service worker cleanup.');
+          window.location.reload();
         }
       });
     }
