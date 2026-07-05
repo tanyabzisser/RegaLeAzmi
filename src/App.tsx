@@ -1472,6 +1472,26 @@ export default function App() {
     }
   }, []);
 
+  // Actively unregister service workers and clear caches to prevent caching issues and restore clean state
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log('Unregistered service worker dynamically in App mount.');
+        }
+      });
+    }
+    if (window.caches) {
+      caches.keys().then(names => {
+        for (let name of names) {
+          caches.delete(name);
+          console.log('Deleted cache dynamically on App mount:', name);
+        }
+      });
+    }
+  }, []);
+
   const [showCommunityModal, setShowCommunityModal] = useState(false);
   const [communityNewsletter, setCommunityNewsletter] = useState<boolean>(() => {
     return localStorage.getItem('community_newsletter') === 'true';

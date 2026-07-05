@@ -12,44 +12,21 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Clear all existing caches and service worker registrations if we detect an old cache or to resolve a stuck page.
-      // Doing this once per app update (e.g. stored in localStorage) prevents aggressive cache loops.
-      const CACHE_RESET_VERSION = 'v2_network_first_sw_reset';
+      // Clean up any registered service workers and delete caches to prevent any future caching traps or media playback issues.
       if ('serviceWorker' in navigator) {
-        if (localStorage.getItem('sw_reset_version') !== CACHE_RESET_VERSION) {
-          navigator.serviceWorker.getRegistrations().then(registrations => {
-            for (let registration of registrations) {
-              registration.unregister();
-            }
-            if (window.caches) {
-              caches.keys().then(names => {
-                for (let name of names) caches.delete(name);
-              });
-            }
-            localStorage.setItem('sw_reset_version', CACHE_RESET_VERSION);
-            // Reload page to ensure clean state
-            window.location.reload();
-          });
-        }
-
-        window.addEventListener('load', () => {
-          // Register relative to the base URL of the app, stripping file names if any
-          let pathname = window.location.pathname;
-          if (pathname.includes('.')) {
-            const lastSlash = pathname.lastIndexOf('/');
-            pathname = lastSlash > 0 ? pathname.substring(0, lastSlash + 1) : '/';
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          for (let registration of registrations) {
+            registration.unregister();
+            console.log('Successfully unregistered active service worker.');
           }
-          if (!pathname.endsWith('/')) {
-            pathname = pathname + '/';
+        });
+      }
+      if (window.caches) {
+        caches.keys().then(names => {
+          for (let name of names) {
+            caches.delete(name);
+            console.log('Successfully deleted cache:', name);
           }
-          const swUrl = pathname + 'sw.js';
-          navigator.serviceWorker.register(swUrl)
-            .then((reg) => {
-              console.log('Service Worker registered successfully!', reg.scope);
-              // Force update to check for newer version immediately
-              reg.update();
-            })
-            .catch((err) => console.error('Service Worker registration failed:', err));
         });
       }
     </script>
