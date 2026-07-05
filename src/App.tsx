@@ -484,6 +484,8 @@ function SOSMode({ onClose }: { onClose: () => void }) {
   const [script, setScript] = useState<string>("קחי נשימה עמוקה. את עושה עבודה מדהימה. פשוט תהיי כאן.");
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<typeof MEDITATION_TRACKS[0] | null>(null);
+  const [isSynthActive, setIsSynthActive] = useState(false);
+  const [hasTriedRemoteFallback, setHasTriedRemoteFallback] = useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
   // References for Web Audio API Ambient Synthesizer fallback
@@ -495,6 +497,7 @@ function SOSMode({ onClose }: { onClose: () => void }) {
   const breatheIntervalRef = React.useRef<any>(null);
 
   const startFallbackSynth = () => {
+    setIsSynthActive(true);
     if (synthCtxRef.current) return;
     try {
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -550,6 +553,7 @@ function SOSMode({ onClose }: { onClose: () => void }) {
   };
 
   const stopFallbackSynth = () => {
+    setIsSynthActive(false);
     if (breatheIntervalRef.current) {
       clearInterval(breatheIntervalRef.current);
       breatheIntervalRef.current = null;
@@ -628,6 +632,7 @@ function SOSMode({ onClose }: { onClose: () => void }) {
     setTimer(90);
     setSessionDuration(90);
     setIsMusicPlaying(true);
+    setHasTriedRemoteFallback(false);
     if (audioRef.current) {
       const proxyUrl = url.startsWith('/') ? url : `/api/audio-proxy?url=${encodeURIComponent(url)}`;
       audioRef.current.src = proxyUrl;
@@ -746,7 +751,33 @@ function SOSMode({ onClose }: { onClose: () => void }) {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-calm-dark/95 backdrop-blur-3xl flex flex-col items-center justify-center p-8 text-white text-center font-sans overflow-hidden"
     >
-      <audio ref={audioRef} loop className="hidden" />
+      <audio 
+        ref={audioRef} 
+        loop 
+        className="hidden" 
+        onError={(e) => {
+          console.warn("Audio element failed to load or play:", e);
+          if (!hasTriedRemoteFallback && currentTrack && currentTrack.url) {
+            setHasTriedRemoteFallback(true);
+            const remoteUrl = `https://ais-pre-jhycsdjlndfixk3jhu6x5l-241522889105.europe-west2.run.app${currentTrack.url}`;
+            console.info("Attempting to stream audio from high-availability remote backup:", remoteUrl);
+            if (audioRef.current) {
+              audioRef.current.src = remoteUrl;
+              audioRef.current.load();
+              audioRef.current.play().catch(err => {
+                console.warn("Remote audio fallback failed too, starting synthesizer:", err);
+                startFallbackSynth();
+              });
+            }
+          } else {
+            console.warn("Falling back to browser-native synthesizer.");
+            startFallbackSynth();
+          }
+        }}
+        onStalled={() => {
+          console.warn("Audio download/playback stalled...");
+        }}
+      />
       
       <button 
         onClick={() => {
@@ -831,7 +862,12 @@ function SOSMode({ onClose }: { onClose: () => void }) {
                  className="h-full bg-calm-sage transition-all duration-1000 linear"
                />
             </div>
-            {currentTrack && (
+            {isSynthActive ? (
+              <div className="flex items-center justify-center gap-1.5 text-xs text-amber-200/90 font-serif">
+                <span>✨</span>
+                <span>מנגן כעת: <strong className="font-sans font-bold">סינתיסייזר נשימה מקומי (Offline)</strong> – צלילים מרגיעים מובנים</span>
+              </div>
+            ) : currentTrack && (
               <div className="flex items-center justify-center gap-1.5 text-xs text-calm-sage-light opacity-90 font-serif">
                 <span>🎵</span>
                 <span>מנגן כעת: <strong className="font-sans font-bold">{currentTrack.name}</strong> – {currentTrack.style}</span>

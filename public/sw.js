@@ -34,7 +34,13 @@ self.addEventListener('activate', (event) => {
 // Fetch Event (Offline Fallback)
 self.addEventListener('fetch', (event) => {
   // Only cache GET requests and non-API requests
-  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
+  // Also bypass media files (mp3) and /audio/ folder to allow browser-native Range requests (especially for iOS Safari)
+  if (
+    event.request.method !== 'GET' || 
+    event.request.url.includes('/api/') ||
+    event.request.url.match(/\.(mp3|wav|ogg|m4a|aac)$/i) ||
+    event.request.url.includes('/audio/')
+  ) {
     return;
   }
 
