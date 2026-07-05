@@ -431,49 +431,49 @@ const MEDITATION_TRACKS = [
     name: "שלוות נשימה (Breath)",
     style: "צלילי נשימה מונחים",
     atmosphere: "ויסות נשימה, רוגע טבעי ושקט מהיר ברגעי עומס",
-    url: "/audio/track1_breath.mp3"
+    url: "audio/track1_breath.mp3"
   },
   {
     id: 2,
     name: "נשימה עמוקה (Breath 2)",
     style: "מרחב נשימה עוטף",
     atmosphere: "שחרור לחצים, חיבור פנימי, ונשימה איטית ומרגיעה",
-    url: "/audio/track2_breath2.mp3"
+    url: "audio/track2_breath2.mp3"
   },
   {
     id: 3,
     name: "זרימת הנהר (River)",
     style: "רעש מים טבעי",
     atmosphere: "רעש של נהר זורם בעדינות, ניקוי מחשבות ושלווה מוחלטת",
-    url: "/audio/track3_river.mp3"
+    url: "audio/track3_river.mp3"
   },
   {
     id: 4,
     name: "רוגע ספא (Spa)",
     style: "סינתיסייזר אמביינט",
     atmosphere: "שחרור שרירים, תחושת מסאז' קולי, פינוק ורוגע עמוק",
-    url: "/audio/track4_spa.mp3"
+    url: "audio/track4_spa.mp3"
   },
   {
     id: 5,
     name: "דממה פנימית (Stillness)",
     style: "אווירה מרחפת",
     atmosphere: "שקיעה לתוך שקט, עצירת המרוץ היומי ואיזון רגשי",
-    url: "/audio/track5_stillness.mp3"
+    url: "audio/track5_stillness.mp3"
   },
   {
     id: 6,
     name: "שקט מוחלט (Stillness 2)",
     style: "תדר של שלווה",
     atmosphere: "מרחב אינסופי נטול דאגות, רוגע פנימי ואיפוס מחשבות",
-    url: "/audio/track6_stillness2.mp3"
+    url: "audio/track6_stillness2.mp3"
   },
   {
     id: 7,
     name: "ריחוף רגוע (Drift)",
     style: "נבל קוסמי עדין",
     atmosphere: "תדר גלים איטיים, עטיפה אימהית של שלווה וביטחון",
-    url: "/audio/track7_drift.mp3"
+    url: "audio/track7_drift.mp3"
   }
 ];
 
@@ -632,8 +632,17 @@ function SOSMode({ onClose }: { onClose: () => void }) {
     setSessionDuration(90);
     setIsMusicPlaying(true);
     if (audioRef.current) {
-      const proxyUrl = url.startsWith('/') ? url : `/api/audio-proxy?url=${encodeURIComponent(url)}`;
-      audioRef.current.src = proxyUrl;
+      const isExternal = url.startsWith('http://') || url.startsWith('https://');
+      let finalUrl = url;
+      if (isExternal) {
+        finalUrl = `/api/audio-proxy?url=${encodeURIComponent(url)}`;
+      } else {
+        const baseUrl = (import.meta as any).env?.BASE_URL || '/';
+        const cleanBase = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+        const cleanUrl = url.startsWith('/') ? url.slice(1) : url;
+        finalUrl = cleanBase + cleanUrl;
+      }
+      audioRef.current.src = finalUrl;
       audioRef.current.volume = 0.5;
       audioRef.current.play().catch(error => {
         console.warn("Audio play() blocked/failed, starting warm synthesizer fallback...", error);
