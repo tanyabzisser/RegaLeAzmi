@@ -573,63 +573,7 @@ function SOSMode({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const generateMeditation = async () => {
-    setPhase('loading');
-    
-    // Pick a random track that is different from the last track played
-    const lastTrackIdStr = localStorage.getItem('lastPlayedTrackId');
-    const filteredTracks = lastTrackIdStr 
-      ? MEDITATION_TRACKS.filter(t => t.id.toString() !== lastTrackIdStr)
-      : MEDITATION_TRACKS;
-    
-    const tracksToChooseFrom = filteredTracks.length > 0 ? filteredTracks : MEDITATION_TRACKS;
-    const randomTrack = tracksToChooseFrom[Math.floor(Math.random() * tracksToChooseFrom.length)];
-    
-    localStorage.setItem('lastPlayedTrackId', randomTrack.id.toString());
-    setCurrentTrack(randomTrack);
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-    try {
-      const today = new Date().toLocaleDateString('he-IL');
-      const response = await fetch("/api/meditation", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ today }),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-      const data = await response.json();
-      setScript(data.text || "קחי נשימה עמוקה. את עושה עבודה ממהממת. פשוט תהיי כאן.");
-      startMeditation(randomTrack.url);
-    } catch (error) {
-      clearTimeout(timeoutId);
-      console.warn("Maternal Care Info: Utilizing robust client-side backup guide script.", error instanceof Error ? error.message : String(error));
-      
-      const FALLBACK_SCRIPTS = [
-        "קחי נשימה עמוקה, אהובה. את עושה עבודה נפלאה, והכל בסדר עכשיו. הרפי את הכתפיים, שחררי את כל המתח מהגוף. הניחי לכל מחשבה או משימה לחלוף כמו ענן בשמיים.",
-        "ברוכה הבאה לרגע השקט הנוכחי שלך. שימי לב לאוויר הקריר שנכנס ולחום העדין שיוצא. אין שום דבר שאת צריכה לעשות כאן כרגע, פרט ללהיות איתנו ולתת לעצמך פשוט להיות.",
-        "עצמי את העיניים אם תרצי, או פשוט רככי את המבט. הרגישי את הקרקע תחתייך, יציבה ומחזיקה אותך. נשמי פנימה שקט ורוגע, ושלחי החוצה כל דאגה מליבך.",
-        "נשמי אט אט. שימי יד אחת רכה על ליבך המתרחב, המעניק כל כך הרבה אהבה בכל יום לביתך. הרגישי את פעימותיו העמוקות. הרגע הזה הוא כולו מתנה קטנה בשבילך."
-      ];
-      const randomFallback = FALLBACK_SCRIPTS[Math.floor(Math.random() * FALLBACK_SCRIPTS.length)];
-      setScript(randomFallback);
-      
-      const trackUrl = randomTrack?.url || MEDITATION_TRACKS[0].url;
-      startMeditation(trackUrl);
-    }
-  };
-
-  const startMeditation = (url: string) => {
-    setPhase('meditating');
-    setTimer(90);
-    setSessionDuration(90);
+  const playAudioTrack = (url: string) => {
     setIsMusicPlaying(true);
     if (audioRef.current) {
       const isExternal = url.startsWith('http://') || url.startsWith('https://');
@@ -661,6 +605,66 @@ function SOSMode({ onClose }: { onClose: () => void }) {
       });
     } else {
       startFallbackSynth();
+    }
+  };
+
+  const generateMeditation = async () => {
+    setPhase('loading');
+    
+    // Pick a random track that is different from the last track played
+    const lastTrackIdStr = localStorage.getItem('lastPlayedTrackId');
+    const filteredTracks = lastTrackIdStr 
+      ? MEDITATION_TRACKS.filter(t => t.id.toString() !== lastTrackIdStr)
+      : MEDITATION_TRACKS;
+    
+    const tracksToChooseFrom = filteredTracks.length > 0 ? filteredTracks : MEDITATION_TRACKS;
+    const randomTrack = tracksToChooseFrom[Math.floor(Math.random() * tracksToChooseFrom.length)];
+    
+    localStorage.setItem('lastPlayedTrackId', randomTrack.id.toString());
+    setCurrentTrack(randomTrack);
+
+    // PLAY AUDIO SYNCHRONOUSLY HERE (inside the click event's call stack)
+    playAudioTrack(randomTrack.url);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    try {
+      const today = new Date().toLocaleDateString('he-IL');
+      const response = await fetch("/api/meditation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ today }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+      const data = await response.json();
+      setScript(data.text || "קחי נשימה עמוקה. את עושה עבודה ממהממת. פשוט תהיי כאן.");
+      
+      setPhase('meditating');
+      setTimer(90);
+      setSessionDuration(90);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.warn("Maternal Care Info: Utilizing robust client-side backup guide script.", error instanceof Error ? error.message : String(error));
+      
+      const FALLBACK_SCRIPTS = [
+        "קחי נשימה עמוקה, אהובה. את עושה עבודה נפלאה, והכל בסדר עכשיו. הרפי את הכתפיים, שחררי את כל המתח מהגוף. הניחי לכל מחשבה או משימה לחלוף כמו ענן בשמיים.",
+        "ברוכה הבאה לרגע השקט הנוכחי שלך. שימי לב לאוויר הקריר שנכנס ולחום העדין שיוצא. אין שום דבר שאת צריכה לעשות כאן כרגע, פרט ללהיות איתנו ולתת לעצמך פשוט להיות.",
+        "עצמי את העיניים אם תרצי, או פשוט רככי את המבט. הרגישי את הקרקע תחתייך, יציבה ומחזיקה אותך. נשמי פנימה שקט ורוגע, ושלחי החוצה כל דאגה מליבך.",
+        "נשמי אט אט. שימי יד אחת רכה על ליבך המתרחב, המעניק כל כך הרבה אהבה בכל יום לביתך. הרגישי את פעימותיו העמוקות. הרגע הזה הוא כולו מתנה קטנה בשבילך."
+      ];
+      const randomFallback = FALLBACK_SCRIPTS[Math.floor(Math.random() * FALLBACK_SCRIPTS.length)];
+      setScript(randomFallback);
+      
+      setPhase('meditating');
+      setTimer(90);
+      setSessionDuration(90);
     }
   };
 
