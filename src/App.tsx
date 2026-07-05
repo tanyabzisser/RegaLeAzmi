@@ -485,7 +485,6 @@ function SOSMode({ onClose }: { onClose: () => void }) {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<typeof MEDITATION_TRACKS[0] | null>(null);
   const [isSynthActive, setIsSynthActive] = useState(false);
-  const [hasTriedRemoteFallback, setHasTriedRemoteFallback] = useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
   // References for Web Audio API Ambient Synthesizer fallback
@@ -632,7 +631,6 @@ function SOSMode({ onClose }: { onClose: () => void }) {
     setTimer(90);
     setSessionDuration(90);
     setIsMusicPlaying(true);
-    setHasTriedRemoteFallback(false);
     if (audioRef.current) {
       const proxyUrl = url.startsWith('/') ? url : `/api/audio-proxy?url=${encodeURIComponent(url)}`;
       audioRef.current.src = proxyUrl;
@@ -756,26 +754,12 @@ function SOSMode({ onClose }: { onClose: () => void }) {
         loop 
         className="hidden" 
         onError={(e) => {
-          console.warn("Audio element failed to load or play:", e);
-          if (!hasTriedRemoteFallback && currentTrack && currentTrack.url) {
-            setHasTriedRemoteFallback(true);
-            const remoteUrl = `https://ais-pre-jhycsdjlndfixk3jhu6x5l-241522889105.europe-west2.run.app${currentTrack.url}`;
-            console.info("Attempting to stream audio from high-availability remote backup:", remoteUrl);
-            if (audioRef.current) {
-              audioRef.current.src = remoteUrl;
-              audioRef.current.load();
-              audioRef.current.play().catch(err => {
-                console.warn("Remote audio fallback failed too, starting synthesizer:", err);
-                startFallbackSynth();
-              });
-            }
-          } else {
-            console.warn("Falling back to browser-native synthesizer.");
-            startFallbackSynth();
-          }
+          console.warn("Audio element failed to load or play, falling back to browser-native synthesizer:", e);
+          startFallbackSynth();
         }}
         onStalled={() => {
-          console.warn("Audio download/playback stalled...");
+          console.warn("Audio download/playback stalled, ensuring synthesizer backup starts...");
+          startFallbackSynth();
         }}
       />
       
