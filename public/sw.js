@@ -1,17 +1,11 @@
-const CACHE_NAME = 'mom-habits-v1';
+const CACHE_NAME = 'mom-habits-v2';
 const ASSETS_TO_CACHE = [
-  './',
   './index.html',
   './manifest.json'
 ];
 
 // Install Event
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
   self.skipWaiting();
 });
 
@@ -31,7 +25,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch Event (Offline Fallback)
+// Fetch Event (Network First Strategy)
 self.addEventListener('fetch', (event) => {
   // Only cache GET requests and non-API requests
   // Also bypass media files (mp3) and /audio/ folder to allow browser-native Range requests (especially for iOS Safari)
@@ -45,16 +39,28 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).catch(() => {
-        // Fallback for offline if index.html is in cache
-        if (event.request.mode === 'navigate') {
-          return caches.match('/');
+    fetch(event.request)
+      .then((networkResponse) => {
+        // If network request is successful, clone it and put in cache
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
         }
-      });
-    })
+        return networkResponse;
+      })
+      .catch(() => {
+        // If network fails, try to return cached response
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // Offline fallback
+          if (event.request.mode === 'navigate') {
+            return caches.match('./index.html') || caches.match('/');
+          }
+        });
+      })
   );
 });
