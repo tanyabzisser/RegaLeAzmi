@@ -547,7 +547,7 @@ function SOSMode({ onClose }: { onClose: () => void }) {
         phaseCount += 0.15;
       }, 150);
     } catch (e) {
-      console.warn("Could not initiate native synthesizer context:", e);
+      console.warn("Could not initiate native synthesizer context:", e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -569,7 +569,7 @@ function SOSMode({ onClose }: { onClose: () => void }) {
         synthCtxRef.current = null;
       }
     } catch (e) {
-      console.warn("Synthesizer cleanup completed with warnings:", e);
+      console.warn("Synthesizer cleanup completed with warnings:", e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -600,7 +600,7 @@ function SOSMode({ onClose }: { onClose: () => void }) {
       audioRef.current.src = finalUrl;
       audioRef.current.volume = 0.5;
       audioRef.current.play().catch(error => {
-        console.warn("Audio play() blocked/failed, starting warm synthesizer fallback...", error);
+        console.warn("Audio play() blocked/failed, starting warm synthesizer fallback...", error instanceof Error ? error.message : String(error));
         startFallbackSynth();
       });
     } else {
@@ -699,7 +699,7 @@ function SOSMode({ onClose }: { onClose: () => void }) {
         if (phase === 'meditating' && isMusicPlaying) {
           if (audioRef.current && audioRef.current.src && audioRef.current.src !== window.location.href) {
             audioRef.current.play().catch(err => {
-              console.warn("Failed to resume audio on focus:", err);
+              console.warn("Failed to resume audio on focus:", err instanceof Error ? err.message : String(err));
               startFallbackSynth();
             });
           } else {
@@ -758,7 +758,7 @@ function SOSMode({ onClose }: { onClose: () => void }) {
 
     if (audioRef.current && audioRef.current.src && audioRef.current.src !== window.location.href) {
       audioRef.current.play().catch(error => {
-        console.warn("Audio play() failed during resume, starting synth fallback:", error);
+        console.warn("Audio play() failed during resume, starting synth fallback:", error instanceof Error ? error.message : String(error));
         startFallbackSynth();
       });
     } else {
@@ -778,7 +778,7 @@ function SOSMode({ onClose }: { onClose: () => void }) {
         loop 
         className="hidden" 
         onError={(e) => {
-          console.warn("Audio element failed to load or play, falling back to browser-native synthesizer:", e);
+          console.warn("Audio element failed to load or play, falling back to browser-native synthesizer:", e.type);
           startFallbackSynth();
         }}
         onStalled={() => {
