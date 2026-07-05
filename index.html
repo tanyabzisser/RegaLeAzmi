@@ -14,9 +14,16 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          // Register relative to the base URL of the app
-          const baseUrl = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';
-          const swUrl = baseUrl + 'sw.js';
+          // Register relative to the base URL of the app, stripping file names if any
+          let pathname = window.location.pathname;
+          if (pathname.includes('.')) {
+            const lastSlash = pathname.lastIndexOf('/');
+            pathname = lastSlash > 0 ? pathname.substring(0, lastSlash + 1) : '/';
+          }
+          if (!pathname.endsWith('/')) {
+            pathname = pathname + '/';
+          }
+          const swUrl = pathname + 'sw.js';
           navigator.serviceWorker.register(swUrl)
             .then((reg) => console.log('Service Worker registered successfully!', reg.scope))
             .catch((err) => console.error('Service Worker registration failed:', err));

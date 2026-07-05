@@ -583,21 +583,12 @@ function SOSMode({ onClose }: { onClose: () => void }) {
       if (isExternal) {
         finalUrl = `/api/audio-proxy?url=${encodeURIComponent(url)}`;
       } else {
-        // Construct base path dynamically to avoid trailing slash and routing issues on GitHub Pages
-        let path = window.location.pathname;
-        if (path.includes('.')) {
-          const lastSlash = path.lastIndexOf('/');
-          if (lastSlash > 0) {
-            path = path.substring(0, lastSlash + 1);
-          } else {
-            path = '/';
-          }
+        try {
+          // Resolve relative to the document's baseURI which handles all subfolders, filenames, and base tags correctly
+          finalUrl = new URL(url, document.baseURI || window.location.href).href;
+        } catch (e) {
+          finalUrl = url;
         }
-        if (!path.endsWith('/')) {
-          path = path + '/';
-        }
-        const cleanUrl = url.startsWith('/') ? url.slice(1) : url;
-        finalUrl = path + cleanUrl;
       }
       audioRef.current.src = finalUrl;
       audioRef.current.volume = 0.5;
@@ -784,7 +775,8 @@ function SOSMode({ onClose }: { onClose: () => void }) {
         }}
         onError={(e) => {
           // Only fall back to synthesizer if we actually set a source and it wasn't a blank or empty state load
-          if (audioRef.current && audioRef.current.src && audioRef.current.src !== window.location.href && audioRef.current.src !== "") {
+          const audioEl = e.currentTarget;
+          if (audioEl && audioEl.src && audioEl.src !== window.location.href && audioEl.src !== "") {
             console.warn("Audio element failed to load or play, falling back to browser-native synthesizer:", e.type);
             startFallbackSynth();
           }
