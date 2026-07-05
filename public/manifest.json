@@ -4,19 +4,19 @@
   "description": "אפליקציה לליווי, תמיכה וניהול הרגלים יומיים לאימהות עצמאיות ויחידניות. מדיטציות, יומן אישי, סטטיסטיקות וקהילה מחבקת.",
   "icons": [
     {
-      "src": "/icon-192.jpg",
+      "src": "./icon-192.jpg",
       "type": "image/jpeg",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.jpg",
+      "src": "./icon-512.jpg",
       "type": "image/jpeg",
       "sizes": "512x512",
       "purpose": "any maskable"
     }
   ],
-  "start_url": "/",
+  "start_url": "./",
   "background_color": "#FDFBF7",
   "theme_color": "#6E8E75",
   "display": "standalone",
