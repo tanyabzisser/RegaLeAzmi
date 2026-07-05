@@ -573,41 +573,62 @@ function SOSMode({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const resolveAudioUrl = (url: string): string => {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return `/api/audio-proxy?url=${encodeURIComponent(url)}`;
+    }
+    
+    try {
+      let basePath = window.location.pathname;
+      
+      // CRITICAL CASE-SENSITIVITY FIX FOR GITHUB PAGES:
+      // If the user accessed the site with a lowercase '/regaleazmi', GitHub Pages will serve the HTML
+      // but media files inside '/audio/' will 404 because GitHub Pages is case-sensitive and the repo is 'RegaleAzmi'.
+      if (basePath.toLowerCase().includes('/regaleazmi')) {
+        basePath = basePath.replace(/\/regaleazmi/i, '/RegaleAzmi');
+      }
+      
+      const lastSlash = basePath.lastIndexOf('/');
+      if (lastSlash >= 0) {
+        const lastSegment = basePath.substring(lastSlash + 1);
+        if (lastSegment.includes('.')) {
+          basePath = basePath.substring(0, lastSlash + 1);
+        }
+      }
+      if (!basePath.endsWith('/')) {
+        basePath += '/';
+      }
+      const cleanUrl = url.startsWith('/') ? url.slice(1) : url;
+      return window.location.origin + basePath + cleanUrl;
+    } catch (e) {
+      console.warn("Error in resolveAudioUrl, using fallback path:", e);
+      return url;
+    }
+  };
+
   const playAudioTrack = (url: string) => {
     setIsMusicPlaying(true);
     // Reset and stop any active fallback synth when attempting to play a real audio file
     stopFallbackSynth();
     if (audioRef.current) {
-      const isExternal = url.startsWith('http://') || url.startsWith('https://');
-      let finalUrl = url;
-      if (isExternal) {
-        finalUrl = `/api/audio-proxy?url=${encodeURIComponent(url)}`;
-      } else {
-        try {
-          // Robust path resolution for GitHub Pages/subfolders
-          let basePath = window.location.pathname;
-          const lastSlash = basePath.lastIndexOf('/');
-          if (lastSlash >= 0) {
-            const lastSegment = basePath.substring(lastSlash + 1);
-            if (lastSegment.includes('.')) {
-              basePath = basePath.substring(0, lastSlash + 1);
-            }
-          }
-          if (!basePath.endsWith('/')) {
-            basePath += '/';
-          }
-          const cleanUrl = url.startsWith('/') ? url.slice(1) : url;
-          finalUrl = window.location.origin + basePath + cleanUrl;
-        } catch (e) {
-          finalUrl = url;
-        }
-      }
-      audioRef.current.src = finalUrl;
-      audioRef.current.volume = 0.5;
-      audioRef.current.play().catch(error => {
-        console.warn("Audio play() blocked/failed, starting warm synthesizer fallback...", error instanceof Error ? error.message : String(error));
+      try {
+        const finalUrl = resolveAudioUrl(url);
+        console.log("Playing audio track resolved URL:", finalUrl);
+        
+        // Critical Safari/iOS WebKit fix: pause, change src, call load(), then play()
+        audioRef.current.pause();
+        audioRef.current.src = finalUrl;
+        audioRef.current.load(); // Force browser to re-load the new resource
+        audioRef.current.volume = 0.5;
+        
+        audioRef.current.play().catch(error => {
+          console.warn("Audio play() blocked/failed, starting warm synthesizer fallback...", error instanceof Error ? error.message : String(error));
+          startFallbackSynth();
+        });
+      } catch (err) {
+        console.error("Failed to setup audio playback:", err);
         startFallbackSynth();
-      });
+      }
     } else {
       startFallbackSynth();
     }
