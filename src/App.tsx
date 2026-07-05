@@ -584,8 +584,20 @@ function SOSMode({ onClose }: { onClose: () => void }) {
         finalUrl = `/api/audio-proxy?url=${encodeURIComponent(url)}`;
       } else {
         try {
-          // Resolve relative to the document's baseURI which handles all subfolders, filenames, and base tags correctly
-          finalUrl = new URL(url, document.baseURI || window.location.href).href;
+          // Robust path resolution for GitHub Pages/subfolders
+          let basePath = window.location.pathname;
+          const lastSlash = basePath.lastIndexOf('/');
+          if (lastSlash >= 0) {
+            const lastSegment = basePath.substring(lastSlash + 1);
+            if (lastSegment.includes('.')) {
+              basePath = basePath.substring(0, lastSlash + 1);
+            }
+          }
+          if (!basePath.endsWith('/')) {
+            basePath += '/';
+          }
+          const cleanUrl = url.startsWith('/') ? url.slice(1) : url;
+          finalUrl = window.location.origin + basePath + cleanUrl;
         } catch (e) {
           finalUrl = url;
         }
