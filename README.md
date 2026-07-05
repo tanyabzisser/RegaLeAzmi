@@ -1,20 +1,16 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# רגע לעצמי - RegaleAzmi
 
-# Run and deploy your AI Studio app
+אפליקציה אישית למדיטציה, נשימות ורוגע פנימי.
 
-This contains everything you need to run your app locally.
+## תכונות עיקריות
+- **מגוון רצועות שמע**: מוזיקה וצלילי נשימה מונחים להרגעה.
+- **ויסות נשימה**: כלי אינטראקטיבי להנחיית קצב הנשימה.
+- **נגישות אופליין**: נגן מוזיקה שעובד בצורה חלקה.
 
-View your app in AI Studio: https://ai.studio/apps/0e472ff5-1237-42c4-a042-9c6918da3104
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## פריסה ב-GitHub Pages
+האפליקציה מוגדרת לפריסה אוטומטית באמצעות GitHub Actions בכל דחיפה (Push) לענף `main`.
+אם נתקלתם בשגיאה `HttpError: Not Found` בריצה הראשונה של ה-Action:
+1. ודאו שבהגדרות ה-Repository תחת **Settings** -> **Pages**:
+   - ה-**Source** מוגדר כ-**GitHub Actions**.
+2. חזרו ללשונית **Actions** ב-GitHub.
+3. כנסו לריצה שנכשלה ולחצו על **Re-run jobs** (מצד ימין למעלה) כדי להפעיל אותה מחדש.
