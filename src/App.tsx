@@ -575,6 +575,8 @@ function SOSMode({ onClose }: { onClose: () => void }) {
 
   const playAudioTrack = (url: string) => {
     setIsMusicPlaying(true);
+    // Reset and stop any active fallback synth when attempting to play a real audio file
+    stopFallbackSynth();
     if (audioRef.current) {
       const isExternal = url.startsWith('http://') || url.startsWith('https://');
       let finalUrl = url;
@@ -777,13 +779,18 @@ function SOSMode({ onClose }: { onClose: () => void }) {
         ref={audioRef} 
         loop 
         className="hidden" 
+        onPlay={() => {
+          stopFallbackSynth();
+        }}
         onError={(e) => {
-          console.warn("Audio element failed to load or play, falling back to browser-native synthesizer:", e.type);
-          startFallbackSynth();
+          // Only fall back to synthesizer if we actually set a source and it wasn't a blank or empty state load
+          if (audioRef.current && audioRef.current.src && audioRef.current.src !== window.location.href && audioRef.current.src !== "") {
+            console.warn("Audio element failed to load or play, falling back to browser-native synthesizer:", e.type);
+            startFallbackSynth();
+          }
         }}
         onStalled={() => {
-          console.warn("Audio download/playback stalled, ensuring synthesizer backup starts...");
-          startFallbackSynth();
+          console.warn("Audio download/playback stalled slightly, waiting for buffer...");
         }}
       />
       
